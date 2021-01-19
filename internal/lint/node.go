@@ -2,6 +2,7 @@ package lint
 
 import (
 	"bytes"
+	"io"
 	"strings"
 	"unicode/utf8"
 
@@ -15,7 +16,6 @@ type node struct {
 	Sentences   []string
 	Scope       string
 	Text        string
-	Words       []string
 	Descendants []node
 }
 
@@ -54,9 +54,15 @@ func (t *ast) addClass(class string) {
 
 func (t *ast) addNode(text, scope string) {
 	n := node{Text: text, Scope: scope, Classes: t.clsHistory}
+
 	for _, child := range t.storage {
 		n.Descendants = append(n.Descendants, child)
 	}
+
+	if scope == "text" {
+		n.Sentences = core.TextToSentences(text)
+	}
+
 	t.nodes = append(t.nodes, n)
 }
 
@@ -156,4 +162,37 @@ func offset(txt string, inline bool) string {
 	}
 
 	return txt
+}
+
+func (l Linter) lintHTMLNodes(f *core.File, raw []byte, offset int) error {
+	tree, err := newAST(raw)
+	if err != io.EOF {
+		return err
+	}
+
+	walker := newWalker(f, raw, offset)
+	for _, node := range tree.nodes {
+		for _, child := range node.Descendants {
+			tempCtx := updateContext(walker.context, walker.queue)
+			l.lintBlock(
+				f,
+				core.NewBlock(tempCtx, child.Text, child.Scope),
+				walker.lines,
+				0,
+				true)
+		}
+
+		walker.append(node.Text)
+		switch node.Scope {
+		case "comment":
+			f.UpdateComments(node.Text)
+		case "pre":
+		default:
+			b := walker.block(node.Text, node.Scope)
+			l.lintBlock(f, b, walker.lines, 0, false)
+			walker.reset()
+		}
+	}
+
+	return nil
 }

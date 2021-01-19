@@ -357,3 +357,21 @@ func loadVocab(root string, cfg *Config) error {
 
 	return err
 }
+
+// TextToSentences splits the given block of text into a slice of sentences.
+func TextToSentences(text string) []string {
+	return SentenceTokenizer.Tokenize(text)
+}
+
+// SentencesToWords splits the given sentences into a slice of words.
+func SentencesToWords(sents []string) []string {
+	// TODO: Replace with iterTokenizer?
+	tok := tokenize.NewTreebankWordTokenizer()
+
+	words := []string{}
+	for _, s := range sents {
+		words = append(words, tok.Tokenize(s)...)
+	}
+
+	return words
+}
