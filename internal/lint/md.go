@@ -56,5 +56,9 @@ func (l Linter) lintMarkdown(f *core.File) error {
 	})
 
 	f.Content = body
+
+	t := newAST(buf.Bytes())
+	core.PrintJSON(t.Nodes)
+
 	return l.lintHTMLTokens(f, buf.Bytes(), 0)
 }
