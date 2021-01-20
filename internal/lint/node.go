@@ -60,7 +60,7 @@ func (t *ast) addNode(text, scope string) {
 	}
 
 	if scope == "text" {
-		n.Sentences = core.TextToSentences(text)
+		//n.Sentences = core.TextToSentences(text)
 	}
 
 	t.nodes = append(t.nodes, n)
@@ -170,29 +170,36 @@ func (l Linter) lintHTMLNodes(f *core.File, raw []byte, offset int) error {
 		return err
 	}
 
-	walker := newWalker(f, raw, offset)
+	pos := 0
 	for _, node := range tree.nodes {
-		for _, child := range node.Descendants {
-			tempCtx := updateContext(walker.context, walker.queue)
-			l.lintBlock(
-				f,
-				core.NewBlock(tempCtx, child.Text, child.Scope),
-				walker.lines,
-				0,
-				true)
-		}
-
-		walker.append(node.Text)
-		switch node.Scope {
-		case "comment":
-			f.UpdateComments(node.Text)
-		case "pre":
-		default:
-			b := walker.block(node.Text, node.Scope)
-			l.lintBlock(f, b, walker.lines, 0, false)
-			walker.reset()
-		}
+		pos += strings.Count(node.Text, "\n")
 	}
+	core.PrintJSON(pos)
+
+	/*
+		walker := newWalker(f, raw, offset)
+		for _, node := range tree.nodes {
+			for _, child := range node.Descendants {
+				tempCtx := updateContext(walker.context, walker.queue)
+				l.lintBlock(
+					f,
+					core.NewBlock(tempCtx, child.Text, child.Scope),
+					walker.lines,
+					0,
+					true)
+			}
+
+			//walker.append(node.Text)
+			switch node.Scope {
+			case "comment":
+				f.UpdateComments(node.Text)
+			case "pre":
+			default:
+				b := walker.block(node.Text, node.Scope)
+				l.lintBlock(f, b, walker.lines, 0, false)
+				walker.reset()
+			}
+		}*/
 
 	return nil
 }
